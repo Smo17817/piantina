@@ -29,6 +29,7 @@ SEED = 42
 
 BASE = Path(__file__).resolve().parent
 root = BASE / "dataset" / "house_plant_species"
+CSV_NAME = "extended_split.csv"
 
 def ext_count(plant_index):
     # Conteggio delle estensioni
@@ -107,5 +108,5 @@ if __name__ == "__main__":
     plant_index = sorted([(img, img.parent.name) for img in root.rglob('*') if img.is_file() and img.suffix.lower() in ESTENSIONI])
     
     # img_ops(plant_index)
-    csv_split(plant_index, "extended_split.csv")
-    check_split("extended_split.csv")
+    csv_split(plant_index, CSV_NAME)
+    check_split(CSV_NAME)

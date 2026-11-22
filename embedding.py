@@ -13,7 +13,7 @@ import numpy as np
 # --- Routes ---
 BASE = Path(__file__).resolve().parent
 ROOT = BASE / "dataset" / "house_plant_species"
-SPLIT_CSV = BASE / "extended_split.csv"
+SPLIT_CSV = BASE / "split" / "extended_split.csv"
 OUT = BASE / "outputs"
 EMBEDDING = OUT / "embeddings_extended.npz"
 
