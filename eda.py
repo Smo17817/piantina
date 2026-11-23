@@ -28,7 +28,7 @@ FORMATO_ATTESO = {
 SEED = 42
 
 BASE = Path(__file__).resolve().parent
-root = BASE / "dataset" / "house_plant_species"
+ROOT = BASE / "dataset" / "house_plant_species"
 CSV_NAME = "extended_split.csv"
 
 def ext_count(plant_index):
@@ -85,27 +85,27 @@ def img_ops(plant_index):
 
 # --- Creazione .csv con split ---
 def csv_split(plant_index, file_name="split.csv"):
-    df_known = pd.DataFrame([(path.relative_to(root).as_posix(), specie) for path, specie in plant_index if specie in SUBSET], columns=["path", "specie"])
+    df_known = pd.DataFrame([(path.relative_to(ROOT).as_posix(), specie) for path, specie in plant_index if specie in SUBSET], columns=["path", "specie"])
     test = df_known.groupby("specie").sample(frac=0.2, random_state=SEED)
 
     df_known["group"] = "train"
     df_known.loc[test.index, "group"] = "test"
 
     # Aggiunta immagini sconosciute per determinare il comportamento del modello in caso di indecisione
-    df_unknown = pd.DataFrame([(path.relative_to(root).as_posix(), specie, "unknown") for path, specie in plant_index if specie not in SUBSET], columns=["path", "specie", 'group'])
+    df_unknown = pd.DataFrame([(path.relative_to(ROOT).as_posix(), specie, "unknown") for path, specie in plant_index if specie not in SUBSET], columns=["path", "specie", 'group'])
     df_unknown_subsample = df_unknown.groupby("specie").sample(n=20, random_state=SEED)
 
     df = pd.concat([df_known, df_unknown_subsample], ignore_index=True)
 
-    df.to_csv(BASE / file_name, index=False)
+    df.to_csv(BASE / "split" / file_name, index=False)
 
 def check_split(file_name="split.csv"):
-    df = pd.read_csv(BASE / file_name)
+    df = pd.read_csv(BASE / "split" / file_name)
     print(pd.crosstab(df["specie"], df["group"]))
 
 if __name__ == "__main__":
     # Indice strutturato come segue (Path di ogni immagine: Specie)
-    plant_index = sorted([(img, img.parent.name) for img in root.rglob('*') if img.is_file() and img.suffix.lower() in ESTENSIONI])
+    plant_index = sorted([(img, img.parent.name) for img in ROOT.rglob('*') if img.is_file() and img.suffix.lower() in ESTENSIONI])
     
     # img_ops(plant_index)
     csv_split(plant_index, CSV_NAME)

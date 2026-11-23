@@ -8,6 +8,7 @@ BASE = Path(__file__).resolve().parent
 EMBEDDINGS = BASE / "outputs" / "embeddings_extended.npz"
 
 K_VALUES = [1, 5, 10, 15, 20]
+THRESHOLD = 0.7
 
 def load(emb_path):
     dati = np.load(emb_path)
@@ -113,6 +114,27 @@ def plot_scores(gruppi, soglia=None):
     plt.tight_layout()
     plt.show()
 
+def threshold_table(score_test, corrette, score_unknown, soglie):
+    '''
+    Per diverse soglie, valuta:
+    copertura: Percentuale delle piante di test il cui vicino più prossimo ha un valore superiore alla soglia (quindi classificata con un certo livello di sicurezza)
+    accuracy: Percentuale di piante classificate correttamente tra quelle considerate
+    unknown_rifiutate: Percentuale di piante sconosciute con un vicino con punteggio inferiore rispetto a quello scelto
+
+    restituisce un dataframe
+    '''
+    entires = []
+
+    for soglia in soglie:
+        threshold = {}
+        threshold["soglia"] = soglia
+        threshold["copertura"] = (score_test >= soglia).mean()
+        threshold["accuracy"] = corrette[score_test >= soglia].mean()
+        threshold["unknown_rifiutate"] = (score_unknown < soglia).mean()
+        entires.append(threshold)
+
+    return pd.DataFrame(entires)
+
 if __name__ == "__main__":
     k = 5
 
@@ -126,19 +148,19 @@ if __name__ == "__main__":
     predictions_unknown, score_unknown = predict(unknown_x, train_x, train_y, k)
     
     mask = check_duplicates(score_test, 0.97)
+    corrette = predictions_test == test_y
 
     print(f"\n=== TEST - k: {k} ===")
     print(f"Accuracy con duplicati: {accuracy(predictions_test, test_y):.3f}")
     print(f"Accuracy senza duplicati: {accuracy(predictions_test[mask], test_y[mask]):.3f}")
     print(f"Immagini Escluse: {(~mask).sum()}")
     print(f"\nPercentili (5-50-95)")
-    print(f"Immagini Classificate Correttamente: {np.percentile(score_test[predictions_test == test_y], [5, 50, 95])}")
-    print(f"Immagini Classificate Erroneamente: {np.percentile(score_test[predictions_test != test_y], [5, 50, 95])}")
+    print(f"Immagini Classificate Correttamente: {np.percentile(score_test[corrette], [5, 50, 95])}")
+    print(f"Immagini Classificate Erroneamente: {np.percentile(score_test[~corrette], [5, 50, 95])}")
     print(f"Immagini Sconosciute: {np.percentile(score_unknown, [5, 50, 95])}")
     print("\n--- Confusion Matrix ---")
     print(confusion_matrix(test_y, predictions_test))
 
-    corrette = predictions_test == test_y
     plot_scores(
         {
             "Corrette": score_test[corrette],
@@ -148,5 +170,4 @@ if __name__ == "__main__":
         soglia=0.7,
     )
 
-    
-
+    print(threshold_table(score_test, corrette, score_unknown, np.linspace(0.4, 0.8, 9)))
