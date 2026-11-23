@@ -95,20 +95,25 @@ def load_model(device):
 
     return model
 
+def embed_batch(model, x, device):
+    with torch.inference_mode(): 
+        outputs = model(pixel_values=x.to(device))
+        cls = outputs.last_hidden_state[:, 0]
+        cls = F.normalize(cls, dim=1)
+
+    return cls.cpu()
+
 def extract(model, loader, device):
     batch_emb = []
     batch_idx = []
     
-    with torch.inference_mode():    
-        for n, (xb, ib) in enumerate(loader):
-            outputs = model(pixel_values=xb.to(device))
-            cls = outputs.last_hidden_state[:, 0]
-            cls = F.normalize(cls, dim=1)
-            batch_emb.append(cls.cpu())
-            batch_idx.append(ib)
+    for n, (x, ib) in enumerate(loader):
+        cls = embed_batch(model, x, device)
+        batch_emb.append(cls)
+        batch_idx.append(ib)
     
-            if (n + 1) % 20 == 0 or n + 1 == len(loader):
-                print(f"Batch: {n+1:>5}/{len(loader)}") 
+        if (n + 1) % 20 == 0 or n + 1 == len(loader):
+            print(f"Batch: {n+1:>5}/{len(loader)}") 
     
     emb = torch.cat(batch_emb)
     idx = torch.cat(batch_idx)

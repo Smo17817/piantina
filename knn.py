@@ -9,6 +9,7 @@ EMBEDDINGS = BASE / "outputs" / "embeddings_extended.npz"
 
 K_VALUES = [1, 5, 10, 15, 20]
 THRESHOLD = 0.7
+K = 5
 
 def load(emb_path):
     dati = np.load(emb_path)
@@ -136,21 +137,19 @@ def threshold_table(score_test, corrette, score_unknown, soglie):
     return pd.DataFrame(entires)
 
 if __name__ == "__main__":
-    k = 5
-
     pd.set_option("display.max_columns", None)  # nessun limite al numero di colonne
     pd.set_option("display.width", None)        # adatta la larghezza al terminale
 
     emb, specie, group = load(EMBEDDINGS)
     train_x, train_y, test_x, test_y, unknown_x, unknown_y = split(emb, specie, group)
 
-    predictions_test, score_test = predict(test_x, train_x, train_y, k)
-    predictions_unknown, score_unknown = predict(unknown_x, train_x, train_y, k)
+    predictions_test, score_test = predict(test_x, train_x, train_y, K)
+    predictions_unknown, score_unknown = predict(unknown_x, train_x, train_y, K)
     
     mask = check_duplicates(score_test, 0.97)
     corrette = predictions_test == test_y
 
-    print(f"\n=== TEST - k: {k} ===")
+    print(f"\n=== TEST - k: {K} ===")
     print(f"Accuracy con duplicati: {accuracy(predictions_test, test_y):.3f}")
     print(f"Accuracy senza duplicati: {accuracy(predictions_test[mask], test_y[mask]):.3f}")
     print(f"Immagini Escluse: {(~mask).sum()}")
