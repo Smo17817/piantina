@@ -1,4 +1,4 @@
-from embedding import build_transform, load_model, check_tensor, denormalize, embed_batch
+from embedding import build_transform, load_model, check_tensor, denormalize, embed_batch, IMAGE_SIZE, RESIZE_SIZE
 from knn import load, split, predict, THRESHOLD, K, EMBEDDINGS
 from PIL import Image
 import cv2
@@ -18,6 +18,28 @@ def show_frame(tensor):
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)   # OpenCV vuole BGR
     cv2.imshow("Input modello", img)
 
+def crop_box(larghezza, altezza):
+    '''
+    Trova l'area osservata dal modello nell'immagine originale.
+    Viene restituito il vertice in alto a sinistra del quadrato.
+    '''
+    scale_factor = RESIZE_SIZE / min([larghezza, altezza])
+    square_side = int(IMAGE_SIZE / scale_factor)
+
+    v1 = ((larghezza - square_side) // 2, (altezza - square_side) // 2)
+    v2 = (v1[0] + square_side, v1[1] + square_side)
+
+    return v1, v2
+
+def draw_label(img, testo, pos, colore, scala=0.7, spessore=2, bordo=2):
+    '''Testo colorato con contorno bianco, ottenuto da copie spostate del testo.'''
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    x, y = pos
+    for dx in (-bordo, 0, bordo):
+        for dy in (-bordo, 0, bordo):
+            if dx or dy:   # salta (0, 0): è la posizione del testo colorato
+                cv2.putText(img, testo, (x + dx, y + dy), font, scala, (255, 255, 255), spessore, cv2.LINE_AA)
+    cv2.putText(img, testo, (x, y), font, scala, colore, spessore, cv2.LINE_AA)
 
 if __name__ == "__main__":
     # Assegna a cap il primo dispositivo webcam (0), usando DirectShow di Windows
@@ -45,6 +67,8 @@ if __name__ == "__main__":
         galleria = np.concatenate([train_x, test_x])
         galleria_labels = np.concatenate([train_y, test_y])
 
+        v1, v2 = crop_box(frame.shape[1], frame.shape[0])
+
         while True:
             # legge il frame, e restituisce True (se la lettura è corretta), (altezza, larghezza, 3)
             ok, frame = cap.read()
@@ -61,10 +85,16 @@ if __name__ == "__main__":
                 emb = embed_batch(model, t_frame, device).numpy()
                 label, score = predict(emb, galleria, galleria_labels, K)
 
+                display = frame.copy()
                 if score > THRESHOLD:
-                    print(f"Risultato: {label}")
-
-                print(f"Score: {score}")
+                    cv2.rectangle(display, v1, v2, (0, 255, 0), 2)
+                    l = label[0].split(" (")[0]
+                    
+                    draw_label(display, f"{l}: {score[0]:.2f}", (25, 25), (0, 255, 0), 0.7, 2, 1)
+                else:
+                    cv2.rectangle(display, v1, v2, (0, 0, 255), 2)
+                    draw_label(display, f"Non riconosciuta: {score[0]:.2f}", (25, 25), (0, 0, 255), 0.7, 2, 1)
+                cv2.imshow("Result", display)
 
             # Chiusura con tasto q
             if tasto == ord("q"):
