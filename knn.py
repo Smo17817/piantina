@@ -8,7 +8,7 @@ BASE = Path(__file__).resolve().parent
 EMBEDDINGS = BASE / "outputs" / "embeddings_extended.npz"
 
 K_VALUES = [1, 5, 10, 15, 20]
-THRESHOLD = 0.7
+THRESHOLD = 0.6
 K = 5
 
 def load(emb_path):
